@@ -1,0 +1,366 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings-route
+spec:
+  hosts:
+  - ratings.prod.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: ratings.prod.svc.cluster.local
+        subset: v1
+    corsPolicy:
+      allowOrigin:
+      - example.com
+      allowMethods:
+      - POST
+      - GET
+      allowCredentials: false
+      allowHeaders:
+      - X-Foo-Bar
+      maxAge: "24h"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews-route
+  namespace: foo
+spec:
+  hosts:
+  - reviews # interpreted as reviews.foo.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/wpcatalog"
+    - uri:
+        prefix: "/consumercatalog"
+    rewrite:
+      uri: "/newcatalog"
+    route:
+    - destination:
+        host: reviews # interpreted as reviews.foo.svc.cluster.local
+        subset: v2
+  - route:
+    - destination:
+        host: reviews # interpreted as reviews.foo.svc.cluster.local
+        subset: v1
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: reviews-destination
+  namespace: foo
+spec:
+  host: reviews # interpreted as reviews.foo.svc.cluster.local
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: my-productpage-rule
+  namespace: istio-system
+spec:
+  hosts:
+  - productpage.prod.svc.cluster.local # ignores rule namespace
+  http:
+  - timeout: 5s
+    route:
+    - destination:
+        host: productpage.prod.svc.cluster.local
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: external-svc-wikipedia
+spec:
+  hosts:
+  - wikipedia.org
+  location: MESH_EXTERNAL
+  ports:
+  - number: 80
+    name: example-http
+    protocol: HTTP
+  resolution: DNS
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: my-wiki-rule
+spec:
+  hosts:
+  - wikipedia.org
+  http:
+  - timeout: 5s
+    route:
+    - destination:
+        host: wikipedia.org
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings-route
+spec:
+  hosts:
+  - ratings.prod.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: ratings.prod.svc.cluster.local
+        subset: v1
+    fault:
+      abort:
+        percentage:
+          value: 0.1
+        httpStatus: 400
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews-route
+spec:
+  hosts:
+  - reviews.prod.svc.cluster.local
+  http:
+  - match:
+    - sourceLabels:
+        env: prod
+    route:
+    - destination:
+        host: reviews.prod.svc.cluster.local
+        subset: v1
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings-route
+spec:
+  hosts:
+  - ratings.prod.svc.cluster.local
+  http:
+  - match:
+    - headers:
+        end-user:
+          exact: jason
+      uri:
+        prefix: "/ratings/v2/"
+      ignoreUriCase: true
+    route:
+    - destination:
+        host: ratings.prod.svc.cluster.local
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings-route
+spec:
+  hosts:
+  - ratings.prod.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        exact: /v1/getProductRatings
+    redirect:
+      uri: /v1/bookRatings
+      authority: newratings.default.svc.cluster.local
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings-route
+spec:
+  hosts:
+  - ratings.prod.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: ratings.prod.svc.cluster.local
+        subset: v1
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: gateway-error,connect-failure,refused-stream
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings-route
+spec:
+  hosts:
+  - ratings.prod.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: /ratings
+    rewrite:
+      uri: /v1/bookRatings
+    route:
+    - destination:
+        host: ratings.prod.svc.cluster.local
+        subset: v1
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews-route
+spec:
+  hosts:
+  - reviews.prod.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: reviews.prod.svc.cluster.local
+        subset: v2
+      weight: 25
+    - destination:
+        host: reviews.prod.svc.cluster.local
+        subset: v1
+      weight: 75
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: reviews-destination
+spec:
+  host: reviews.prod.svc.cluster.local
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews-route-two-domains
+spec:
+  hosts:
+  - reviews.com
+  http:
+  - route:
+    - destination:
+        host: dev.reviews.com
+      weight: 25
+    - destination:
+        host: reviews.com
+      weight: 75
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews-route
+spec:
+  hosts:
+  - reviews.prod.svc.cluster.local
+  http:
+  - headers:
+      request:
+        set:
+          test: true
+    route:
+    - destination:
+        host: reviews.prod.svc.cluster.local
+        subset: v2
+      weight: 25
+    - destination:
+        host: reviews.prod.svc.cluster.local
+        subset: v1
+      headers:
+        response:
+          remove:
+          - foo
+      weight: 75
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: bookinfo-Mongo
+spec:
+  hosts:
+  - mongo.prod.svc.cluster.local
+  tcp:
+  - match:
+    - port: 27017
+    route:
+    - destination:
+        host: mongo.backup.svc.cluster.local
+        port:
+          number: 5555
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: bookinfo-sni
+spec:
+  hosts:
+  - "*.bookinfo.com"
+  gateways:
+  - mygateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - login.bookinfo.com
+    route:
+    - destination:
+        host: login.prod.svc.cluster.local
+  - match:
+    - port: 443
+      sniHosts:
+      - reviews.bookinfo.com
+    route:
+    - destination:
+        host: reviews.prod.svc.cluster.local
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

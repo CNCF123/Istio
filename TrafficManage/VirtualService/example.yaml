@@ -78,6 +78,20 @@ spec:
         host: mongo.backup.svc.cluster.local
         port:
           number: 5555
+  - route:
+    - destination:
+        host: ratings.prod.svc.cluster.local
+        subset: v1
+    corsPolicy:
+      allowOrigin:
+      - example.com  # 允许来自example.com的get和post请求
+      allowMethods:
+      - POST
+      - GET
+      allowCredentials: false
+      allowHeaders:
+      - X-Foo-Bar
+      maxAge: "24h"
 
 
 
