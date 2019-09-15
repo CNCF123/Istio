@@ -88,7 +88,7 @@ spec:
     name: example-http
     protocol: HTTP
   resolution: DNS
-
+---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
