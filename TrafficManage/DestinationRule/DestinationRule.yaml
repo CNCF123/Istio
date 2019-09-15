@@ -49,8 +49,8 @@ spec:
       http:
         http2MaxRequests: 1000
         maxRequestsPerConnection: 10
-    outlierDetection:
-      consecutiveErrors: 7
+    outlierDetection:  #熔断，5分钟内，5次异常，隔离熔断15分钟
+      consecutiveErrors: 5
       interval: 5m
       baseEjectionTime: 15m
 ---
@@ -64,25 +64,24 @@ spec:
     loadBalancer:
       simple: LEAST_CONN
   subsets:
-  - name: testversion
+  - name: v1
+    labels:
+      version: v1
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+  - name: v2
+    labels:
+      version: v2
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+  - name: v3
     labels:
       version: v3
     trafficPolicy:
       loadBalancer:
         simple: ROUND_ROBIN
----
-apiVersion: networking.istio.io/v1alpha3
-kind: DestinationRule
-metadata:
-  name: db-mtls
-spec:
-  host: mydbserver.prod.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: MUTUAL
-      clientCertificate: /etc/certs/myclientcert.pem
-      privateKey: /etc/certs/client_private_key.pem
-      caCertificates: /etc/certs/rootcacerts.pem
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
@@ -102,7 +101,7 @@ spec:
   host: ratings.prod.svc.cluster.local
   trafficPolicy:
     tls:
-      mode: ISTIO_MUTUAL
+      mode: ISTIO_MUTUAL #自动启用双向认证，代码无需修改，证书秘钥无需维护
 
 
 

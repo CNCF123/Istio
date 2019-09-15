@@ -12,7 +12,7 @@ spec:
         subset: v1
     corsPolicy:
       allowOrigin:
-      - example.com
+      - example.com  #允许来自example.com的get和post请求
       allowMethods:
       - POST
       - GET
@@ -188,9 +188,9 @@ spec:
         host: ratings.prod.svc.cluster.local
         subset: v1
     retries:
-      attempts: 3
-      perTryTimeout: 2s
-      retryOn: gateway-error,connect-failure,refused-stream
+      attempts: 3  #重试几次
+      perTryTimeout: 2s  #超时时间
+      retryOn: 5xx,gateway-error,connect-failure,refused-stream
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -309,11 +309,12 @@ spec:
   - "*.bookinfo.com"
   gateways:
   - mygateway
+  - mesh
   tls:
   - match:
     - port: 443
-      sniHosts:
-      - login.bookinfo.com
+      sniHosts:  #sniHost必须是hosts的子集
+      - login.bookinfo.com  
     route:
     - destination:
         host: login.prod.svc.cluster.local
