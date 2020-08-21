@@ -1,0 +1,17 @@
+  修改istio-ingressgateway
+  
+  - name: http2
+    nodePort: 80
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    nodePort: 443
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+    
+  type: NodePort
+  
+ 在/etc/kubernetes/manifests/kube-apiserver.yaml添加参数
+ - --enable-aggregator-routing=true
